@@ -62,7 +62,7 @@ var cellWidth; //cellWidth is calculated in the redrawWindow function
 var cellHeight; //cellHeight is calculated in the redrawWindow function
 
 var areas = [
-	{"label":"Virtual Queue", "startRow":4, "numRows":15, "startCol": 5, "numCols": 1, "color":"pink"},
+	{"label":"Virtual Queue", "startRow":1, "numRows":1, "startCol": 11, "numCols": STAGING_SIZE, "color":"pink"},
 	{"label":"Staging Area", "startRow":4, "numRows":1, "startCol": 11, "numCols": STAGING_SIZE, "color":"red"},
 	{"label":"Eating Area", "startRow":6, "numRows":EATING_AREA_SIZE, "startCol": 11, "numCols": 20, "color":"yellow"}
 ];
@@ -82,10 +82,10 @@ var tables = Array.apply(null, {length: numTables.reduce((a,b) => a + b['numTabl
 
 var currentTime = 0;
 var stats = [
-	{"name":"Mean Waiting Time", "location":{"row":6+EATING_AREA_SIZE+4, "col": 11}, "cumulativeValue":0, "count":0},
-	{"name":"Mean Idle Tables",  "location":{"row":6+EATING_AREA_SIZE+5, "col": 11}, "cumulativeValue":0, "count":0},
-	{"name":"Mean Turnover", 	"location":{"row":6+EATING_AREA_SIZE+6, "col": 11}, "cumulativeValue":0, "count":0},
-	{"name":"Mean Dropout", 	 "location":{"row":6+EATING_AREA_SIZE+7, "col": 11}, "cumulativeValue":0, "count":0}
+	{"name":"Mean Waiting Time: ", "location":{"row":6+EATING_AREA_SIZE+4, "col": 11}, "cumulativeValue":0, "count":0},
+	{"name":"Mean Idle Tables: ",  "location":{"row":6+EATING_AREA_SIZE+5, "col": 11}, "cumulativeValue":0, "count":0},
+	{"name":"Mean Turnover: ", "location":{"row":6+EATING_AREA_SIZE+6, "col": 11}, "cumulativeValue":0, "count":0},
+	{"name":"Mean Dropout: ", "location":{"row":6+EATING_AREA_SIZE+7, "col": 11}, "cumulativeValue":0, "count":0}
 ];
 
 // From collecting our own data onsite at Ikea Restaurant,
