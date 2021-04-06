@@ -263,6 +263,31 @@ function updateCustomer(customerId){
 		case SHOPPING: //Rae
 		break;
 		case STAGING: // Moktar
+			if(hasArrived){
+				//customer is staged infront of the restaurant
+				var customerposition = customer.location.col-11
+				
+				var emptytables = tables.filter(function(d){return d.state==IDLE})
+				var suitabletables = tables.filter(function(d){return d.pax==customer.pax})
+				if (suitabletables.length>=1){
+					var customer_table = suitabletables[Math.floor(Math.random() * suitabletables.length)];					
+					//if there is an idle table with the corresponding pax size 
+					//as the customers in the staging area, they will get access into 
+					//the restaurant
+					customer.state= INRESTAURANT;
+					customer.target.row=tableRow;
+					customer.target.col=tableCol;
+				}
+					//move up staging queue
+				else if{ STAGING_SPOT[customerposition-1]==0){  
+					customer.target.col=customerposition-1
+					customer.target.row=areas.[1].startRow
+					customer.state=STAGING
+				}
+				
+					
+				
+				
 		break;
 		case INRESTAURANT: // HL
 			if(currentTime > customer.timeLeave){
