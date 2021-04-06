@@ -274,10 +274,13 @@ function updateCustomer(customerId){
 				var i = 0;
 				while (i<20 && STAGING_SPOT[i]==1){
 					i = i + 1}
-				customer.target.col = i + 11;
-				customer.target.row = areas[1].startRow;
-				customer.state = STAGING;
-				STAGING_SPOT[i]=1;
+				if (i<=19){
+					customer.target.col = i + 11;
+					customer.target.row = areas[1].startRow;
+					customer.state = STAGING;
+					STAGING_SPOT[i]=1;}
+	
+					
 			}
 		break;
 		case STAGING: // Moktar
