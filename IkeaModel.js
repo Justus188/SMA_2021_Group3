@@ -196,10 +196,10 @@ function updateSurface() {
 	 .attr("xlink:href", urlQR); // Change if you add more staff
 	
 	newStaff.append("text")
-    .attr("x", function(d) { var cell= getLocationCell(d.location); return (cell.x+cellWidth)+"px"; })
-    .attr("y", function(d) { var cell= getLocationCell(d.location); return (cell.y+cellHeight/2)+"px"; })
-    .attr("dy", ".35em")
-    .text(function(d) { return d.label; });
+	.attr("x", function(d) { var cell= getLocationCell(d.location); return (cell.x+cellWidth)+"px"; })
+	.attr("y", function(d) { var cell= getLocationCell(d.location); return (cell.y+cellHeight/2)+"px"; })
+	.attr("dy", ".35em")
+	.text(function(d) { return d.label; });
 	
 	var allStats = surface.selectAll(".stats").data(stats);
 	var newStats = allStats.enter().append("g").attr("class", "stats");
@@ -266,7 +266,6 @@ function updateCustomer(customerId){
 				customer.target.col = randomInteger(areas[0].startCol, (areas[0].startCol + areas[0].numCols -1));
 				customer.state = SHOPPING;
 				customer.timeQR = currentTime;
-				stats[2].count += 1;
 			}
 		break;
 		case SHOPPING: //Rae
@@ -297,7 +296,9 @@ function updateCustomer(customerId){
 					customer.target.row= customer_table.row;
 					customer.target.col= customer_table.col;
 					customer.timeEnter = currentTime;
-					customer.timeLeave = currentTime + 1000
+					customer.timeLeave = currentTime + servingTime;
+					stats[3].cumulativeValue = customer.timeEnter - customer.timeQR;
+					stats[3].count++;
 					STAGING_SPOT[customerposition]=0;
 				} else if( STAGING_SPOT[customerposition-1]==0){  
 					customer.target.col=customerposition-1;
@@ -317,6 +318,8 @@ function updateCustomer(customerId){
 		case LEAVING:
 			if(hasArrived){
 				customer.state = EXITED;
+				stats[2].cumulativeValue += 1
+				
 			}
 		default:
 		break;
@@ -349,6 +352,9 @@ function updateDynamicAgents(){
 	for (var customerId in customers){
 		updateCustomer(customerId);
 	}
+	stats[1].cumulativeValue += 122 - tables.reduce((a,b) => a + b.state, 0);
+	stats[1].count++;
+	stats[2].count++;
 	updateSurface();
 }
 	
