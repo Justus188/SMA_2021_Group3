@@ -7,18 +7,20 @@ var surface; // Set in the redrawWindow function. It is the D3 selection of the 
 var simTimer; // Set in the initialization function
 
 // TODO: Change urls
-const urlCustomer = ["images/1_Customer.png",
-		     "images/2_Customer.png",
-		     "images/3_Customer.png",
-		     "images/4_Customer.png",
-		     "images/5_Customer.png",
-		     "images/6_Customer.png",
-		     "images/7_Customer.png",
-		     "images/8_Customer.png"];
-const urlTable = ["images/2_Table.png",
-		  "images/3_Table.png",
-		  "images/4_Table.png",
-		  "images/8_Table.png"];
+const urlCustomer = [0,
+	"images/1_Customer.png",
+	"images/2_Customer.png",
+	"images/3_Customer.png",
+	"images/4_Customer.png",
+	"images/5_Customer.png",
+	"images/6_Customer.png",
+	"images/7_Customer.png",
+	"images/8_Customer.png"];
+const urlTable = [0, 0,
+	"images/2_Table.png",
+	"images/3_Table.png",
+	"images/4_Table.png", 0, 0, 0,
+	"images/8_Table.png"];
 const urlDoor = "images/Exit_Door.png";
 const urlQR = "images/Staff.png";
 
@@ -39,12 +41,14 @@ const BUSY = 1;
 const MAX_STAGING = 20;
 const EATING_AREA_SIZE = 15;
 var STAGING_SIZE = MAX_STAGING
-var STAGING_SPOT = rep(0,20)
+var STAGING_SPOT = new Array(20).fill(0)
 
 const QR = 0;
-var QRLocation = {"row": 2, "col": 5};
+const QRLocation = {"row": 2, "col": 20};
 const EXIT = 9;
-const ExitLocation = {"row": 6+EATING_AREA_SIZE+1,"col": 5};
+const ExitLocation = {"row": 6+EATING_AREA_SIZE+1,"col": 20};
+
+var nextCustomerId = 0;
 
 var customers = [];
 var staff = [
@@ -58,7 +62,7 @@ var cellWidth; //cellWidth is calculated in the redrawWindow function
 var cellHeight; //cellHeight is calculated in the redrawWindow function
 
 var areas = [
-	{"label":"Virtual Queue", "startRow":4, "numRows":100, "startCol": 5, "numCols": 1, "color":"pink"},
+	{"label":"Virtual Queue", "startRow":4, "numRows":15, "startCol": 5, "numCols": 1, "color":"pink"},
 	{"label":"Staging Area", "startRow":4, "numRows":1, "startCol": 11, "numCols": STAGING_SIZE, "color":"red"},
 	{"label":"Eating Area", "startRow":6, "numRows":EATING_AREA_SIZE, "startCol": 11, "numCols": 20, "color":"yellow"}
 ];
@@ -88,23 +92,8 @@ var stats = [
 const paxprob = [0.07, 0.57, 0.23, 0.07, 0.04, 0.01, 0.0075, 0.0025];
 const paxcdf = [];
 paxprob.reduce(function(a,b,i) { return paxcdf[i] = a+b; },0);
-const meanInterarrivalTimeSeconds = 29.1558;
-const probArrival = (1-Math.exp(0-1/meanInterarrivalTimeSeconds*animationDelay/1000)) //CDF of exponential distribution to get probArrival
-function genServiceTimeSeconds(){
-	// We found that service time followed an approximately normal distribution with mean 2704s and variance 651583s
-	// given that CDF of normal distribution is not nice, we decided to use an approximation using CLT of uniform random numbers
-	// Function generates a normally distributed service time; we assume it is independent of pax for simplicity
-	const n = 100
-	var sum = 0
-	for (i = 0, i < n, i++){
-		sum += Math.random();
-	}
-	const stdRnorm = ((sum/n)-0.5)/Math.sqrt((1/12)/n);
-	return stdRnorm*Math.sqrt(651583)+2704;
-}
-function genServiceTimeSimStep(){
-	return genServiceTimeSeconds() * 1000 / animationDelay;
-}
+const probArrival = 0.35;
+
 
 
 
@@ -122,6 +111,7 @@ function toggleSimStep(){
 	// Search BasicAgentModel.html to find where it is called.
 	isRunning = !isRunning;
 	console.log("isRunning: "+isRunning);
+}
 	
 function redrawWindow(){
 	isRunning = false; // used by simStep
@@ -131,10 +121,9 @@ function redrawWindow(){
 	
 	// Re-initialize simulation variables
 	
-	nextCustomerID = 0; // Increment before assigning
-	nextSeatedCustomers;
 	currentTime = 0;
-	statistics.map(function(d){d.count=0; d.cumulativeValue=0;})
+	nextCustomerId = 0;
+	stats.map(function(d){d.count=0; d.cumulativeValue=0;})
 	customers = [];
 	
 	//resize the drawing surface; remove all its contents; 
@@ -250,11 +239,11 @@ function updateSurface() {
 function addDynamicAgents(){
 	// Customers are dynamic
 	if (Math.random()< probArrival){
-		var newCustomer = {"id":1,"type":"A","location":{"row":1,"col":1},
-		"target":QRLocation,"state":OUTSIDE,"timeQR":0, "timeEnter":0, "timeLeave":0};
+		var newCustomer = {"id":++nextCustomerId, "location":{"row":1,"col":1},
+		"target":{"row": 2, "col": 20},"state":OUTSIDE,"timeQR":0, "timeEnter":0, "timeLeave":0};
 		const randint = Math.random();
 		newCustomer.pax = paxcdf.findIndex(function(number) {return number > randint;}) + 1; //JS starts from 0
-		customers.push(newCustomers);
+		customers.push(newCustomer);
 	}
 }
 
@@ -269,62 +258,57 @@ function updateCustomer(customerId){
 	var hasArrived = (Math.abs(customer.target.row-row)+Math.abs(customer.target.col-col))==0;
 	function randomInteger(min, max) {
   		return Math.floor(Math.random() * (max - min + 1)) + min};
-
 	
 	switch(state){
 		case OUTSIDE://Rae
 			if (hasArrived) {	
-					customer.target.row = randomInteger(areas[0].startRow, (areas[0].startRow + areas[0].numRows -1))
-					customer.target.col = randomInteger(areas[0].startCol, (areas[0].startCol + areas[0].numCols -1))
-					customer.state = SHOPPING
-					customer.timeQR = currentTime
-					stats[2].count = +1
-					}
+				customer.target.row = randomInteger(areas[0].startRow, (areas[0].startRow + areas[0].numRows -1));
+				customer.target.col = randomInteger(areas[0].startCol, (areas[0].startCol + areas[0].numCols -1));
+				customer.state = SHOPPING;
+				customer.timeQR = currentTime;
+				stats[2].count += 1;
 			}
-							    
-				
 		break;
 		case SHOPPING: //Rae
 			if (hasArrived) {
-				var i = 0
+				var i = 0;
 				while (i<20 && STAGING_SPOT[i]==1){
 					i = i + 1}
-				customer.target.col = i + 11
-				customer.target.row = areas[1].startRow
-				customer.state = STAGING
-						
+				customer.target.col = i + 11;
+				customer.target.row = areas[1].startRow;
+				customer.state = STAGING;
+				STAGING_SPOT[i]=1;
+			}
 		break;
 		case STAGING: // Moktar
 			if(hasArrived){
 				//customer is staged infront of the restaurant
-				var customerposition = customer.location.col-11
-				
-				var emptytables = tables.filter(function(d){return d.state==IDLE})
-				var suitabletables = tables.filter(function(d){return d.pax==customer.pax})
-				if (suitabletables.length>=1){
-					var customer_table = suitabletables[Math.floor(Math.random() * suitabletables.length)];					
+				var customerposition = customer.location.col-11;
+				var customer_table = tables.find(function(d){return d.state==IDLE && d.pax >= customer.pax});
+				if (customer_table !== undefined){	
 					//if there is an idle table with the corresponding pax size 
 					//as the customers in the staging area, they will get access into 
 					//the restaurant
+					customer_table.state = BUSY;
 					customer.state= INRESTAURANT;
-					customer.target.row=tableRow;
-					customer.target.col=tableCol;
+					customer.target.row= customer_table.row;
+					customer.target.col= customer_table.col;
 					customer.timeEnter = currentTime;
-					customer.timeLeave = currentTime + getServiceTimeSimStep();
+					customer.timeLeave = currentTime + 1000
+					STAGING_SPOT[customerposition]=0;
+				} else if( STAGING_SPOT[customerposition-1]==0){  
+					customer.target.col=customerposition-1;
+					customer.target.row=areas[1].startRow;
+					STAGING_SPOT[customerposition]=0
+					STAGING_SPOT[customerposition-1]=1
 				}
-					//move up staging queue
-				else if{ STAGING_SPOT[customerposition-1]==0){  
-					customer.target.col=customerposition-1
-					customer.target.row=areas.[1].startRow
-					customer.state=STAGING
-				}
+			}
 		break;
 		case INRESTAURANT: // HL
-			if(currentTime > customer.timeLeave){
-				customer.target
+			if(currentTime > customer.timeLeave && hasArrived){
 				customer.state = LEAVING;
 				customer.target = ExitLocation;
-				tables.find(d => d.row == row && d.col == col).state = IDLE;
+				tables.find(d => (d.row == row && d.col == col)).state = IDLE;
 			}
 		break;
 		case LEAVING:
@@ -334,8 +318,6 @@ function updateCustomer(customerId){
 		default:
 		break;
 	}
-	
-	//FILL THE LOGIC
 	
 	// set the destination row and column
 	var targetRow = customer.target.row;
@@ -351,11 +333,10 @@ function updateCustomer(customerId){
 	// update the location of the patient
 	customer.location.row = newRow;
 	customer.location.col = newCol;
-	
 }
 	
 function removeDynamicAgents() {
-	var allCustomers = surface.selectAll.(".customer).data(customers);
+	var allCustomers = surface.selectAll(".customer").data(customers);
   	var goneCustomers = allCustomers.filter(function(d,i){return d.state >=EXITED;});
 	goneCustomers.remove();
 	customers = customers.filter(function(d){return d.state < EXITED;});
