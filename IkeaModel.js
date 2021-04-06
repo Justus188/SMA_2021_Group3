@@ -39,6 +39,7 @@ var cellHeight; //cellHeight is calculated in the redrawWindow function
 const MAX_STAGING = 20;
 const EATING_AREA_SIZE = 15;
 var STAGING_SIZE = MAX_STAGING
+var STAGING_SPOT = rep(0,20)
 var areas = [
 	{"label":"Virtual Queue", "startRow":4, "numRows":100, "startCol": 5, "numCols": 1, "color":"pink"},
 	{"label":"Staging Area", "startRow":4, "numRows":1, "startCol": 11, "numCols": STAGING_SIZE, "color":"red"},
@@ -62,7 +63,7 @@ var currentTime = 0;
 var stats = [
 	{"name":"Mean Waiting Time", "location":{"row":6+EATING_AREA_SIZE+4, "col": 11}, "cumulativeValue":0, "count":0},
 	{"name":"Mean Idle Tables",  "location":{"row":6+EATING_AREA_SIZE+5, "col": 11}, "cumulativeValue":0, "count":0},
-	{"name":"Mean Turnover", 	 "location":{"row":6+EATING_AREA_SIZE+6, "col": 11}, "cumulativeValue":0, "count":0},
+	{"name":"Mean Turnover", 	"location":{"row":6+EATING_AREA_SIZE+6, "col": 11}, "cumulativeValue":0, "count":0},
 	{"name":"Mean Dropout", 	 "location":{"row":6+EATING_AREA_SIZE+7, "col": 11}, "cumulativeValue":0, "count":0}
 ];
 
@@ -236,11 +237,32 @@ function updateCustomer(customerId){
 	var state = customer.state;
 	
 	var hasArrived = (Math.abs(customer.target.row-row)+Math.abs(customer.target.col-col))==0;
+	function randomInteger(min, max) {
+  		return Math.floor(Math.random() * (max - min + 1)) + min};
+
 	
 	switch(state){
-		case OUTSIDE: //Rae
+		case OUTSIDE://Rae
+			if (hasArrived) {	
+					customer.target.row = randomInteger(areas[0].startRow, (areas[0].startRow + areas[0].numRows -1))
+					customer.target.col = randomInteger(areas[0].startCol, (areas[0].startCol + areas[0].numCols -1))
+					customer.state = SHOPPING
+					customer.timeQR = currentTime
+					stats[2].count = +1
+					}
+			}
+							    
+				
 		break;
 		case SHOPPING: //Rae
+			if (hasArrived) {
+				var i = 0
+				while (i<20 && STAGING_SPOT[i]==1){
+					i = i + 1}
+				customer.target.col = i + 11
+				customer.target.row = areas[1].startRow
+				customer.state = STAGING
+						
 		break;
 		case STAGING: // Moktar
 		break;
