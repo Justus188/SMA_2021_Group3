@@ -16,8 +16,9 @@ const OUTSIDE		=0;
 const SHOPPING		=1;
 const STAGING		=2; 
 const INRESTAURANT 	=3;
-//const ORDERING     	=4;
-//const EATING       	=5;
+//const ORDERING    =4;
+//const EATING      =5;
+const LEAVING 		=7;
 const EXITED  	   	=8;
 const DROPOUT 	   	=9;
 
@@ -25,21 +26,27 @@ const DROPOUT 	   	=9;
 const IDLE = 0;
 const BUSY = 1;
 
+const MAX_STAGING = 20;
+const EATING_AREA_SIZE = 15;
+var STAGING_SIZE = MAX_STAGING
+var STAGING_SPOT = rep(0,20)
+
 const QR = 0;
 var QRLocation = {"row": 2, "col": 5};
+const EXIT = 9;
+const ExitLocation = {"row": 6+EATING_AREA_SIZE+1,"col": 5};
 
 var customers = [];
-var staff = [{"type":QR, "label":"QR", "location": QRLocation}]
+var staff = [
+	{"type":QR, "label":"QR", "location": QRLocation},
+	{"type":EXIT, "label":"Exit", "location": ExitLocation}
+]
 
 //The drawing surface will be divided into logical cells
 var maxCols = 40;
 var cellWidth; //cellWidth is calculated in the redrawWindow function
 var cellHeight; //cellHeight is calculated in the redrawWindow function
 
-const MAX_STAGING = 20;
-const EATING_AREA_SIZE = 15;
-var STAGING_SIZE = MAX_STAGING
-var STAGING_SPOT = rep(0,20)
 var areas = [
 	{"label":"Virtual Queue", "startRow":4, "numRows":100, "startCol": 5, "numCols": 1, "color":"pink"},
 	{"label":"Staging Area", "startRow":4, "numRows":1, "startCol": 11, "numCols": STAGING_SIZE, "color":"red"},
@@ -72,9 +79,22 @@ const paxprob = [0.07, 0.57, 0.23, 0.07, 0.04, 0.01, 0.0075, 0.0025];
 const paxcdf = [];
 paxprob.reduce(function(a,b,i) { return paxcdf[i] = a+b; },0);
 const meanInterarrivalTimeSeconds = 29.1558;
-const meanInterarrivalTimeSimStep = meanInterarrivalTimeSeconds * 1000 / animationDelay;
-const arrivalRate = 1/meanInterarrivalTimeSimStep;
-
+const probArrival = (1-Math.exp(0-1/meanInterarrivalTimeSeconds*animationDelay/1000)) //CDF of exponential distribution to get probArrival
+function genServiceTimeSeconds(){
+	// We found that service time followed an approximately normal distribution with mean 2704s and variance 651583s
+	// given that CDF of normal distribution is not nice, we decided to use an approximation using CLT of uniform random numbers
+	// Function generates a normally distributed service time; we assume it is independent of pax for simplicity
+	const n = 100
+	var sum = 0
+	for (i = 0, i < n, i++){
+		sum += Math.random();
+	}
+	const stdRnorm = ((sum/n)-0.5)/Math.sqrt((1/12)/n);
+	return stdRnorm*Math.sqrt(651583)+2704;
+}
+function genServiceTimeSimStep(){
+	return genServiceTimeSeconds() * 1000 / animationDelay;
+}
 
 
 
@@ -216,10 +236,10 @@ function updateSurface() {
 	 .attr("height", cellWidth)
 	 .attr("xlink:href", d => urlTable[d.pax]);
 }
-	
+		
 function addDynamicAgents(){
 	// Customers are dynamic
-	if (Math.random()< arrivalRate){
+	if (Math.random()< probArrival){
 		var newCustomer = {"id":1,"type":"A","location":{"row":1,"col":1},
 		"target":QRLocation,"state":OUTSIDE,"timeQR":0, "timeEnter":0, "timeLeave":0};
 		const randint = Math.random();
@@ -265,9 +285,42 @@ function updateCustomer(customerId){
 						
 		break;
 		case STAGING: // Moktar
+			if(hasArrived){
+				//customer is staged infront of the restaurant
+				var customerposition = customer.location.col-11
+				
+				var emptytables = tables.filter(function(d){return d.state==IDLE})
+				var suitabletables = tables.filter(function(d){return d.pax==customer.pax})
+				if (suitabletables.length>=1){
+					var customer_table = suitabletables[Math.floor(Math.random() * suitabletables.length)];					
+					//if there is an idle table with the corresponding pax size 
+					//as the customers in the staging area, they will get access into 
+					//the restaurant
+					customer.state= INRESTAURANT;
+					customer.target.row=tableRow;
+					customer.target.col=tableCol;
+					customer.timeEnter = currentTime;
+					customer.timeLeave = currentTime + getServiceTimeSimStep();
+				}
+					//move up staging queue
+				else if{ STAGING_SPOT[customerposition-1]==0){  
+					customer.target.col=customerposition-1
+					customer.target.row=areas.[1].startRow
+					customer.state=STAGING
+				}
 		break;
 		case INRESTAURANT: // HL
+			if(currentTime > customer.timeLeave){
+				customer.target
+				customer.state = LEAVING;
+				customer.target = ExitLocation;
+				tables.find(d => d.row == row && d.col == col).state = IDLE;
+			}
 		break;
+		case LEAVING:
+			if(hasArrived){
+				customer.state = EXITED;
+			}
 		default:
 		break;
 	}
