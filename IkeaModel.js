@@ -277,6 +277,8 @@ function updateCustomer(customerId){
 					customer.state= INRESTAURANT;
 					customer.target.row=tableRow;
 					customer.target.col=tableCol;
+					customer.timeEnter = currentTime;
+					customer.timeLeave = currentTime + getServiceTimeSimStep();
 				}
 					//move up staging queue
 				else if{ STAGING_SPOT[customerposition-1]==0){  
@@ -284,10 +286,6 @@ function updateCustomer(customerId){
 					customer.target.row=areas.[1].startRow
 					customer.state=STAGING
 				}
-				
-					
-				
-				
 		break;
 		case INRESTAURANT: // HL
 			if(currentTime > customer.timeLeave){
