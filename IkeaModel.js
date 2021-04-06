@@ -16,10 +16,10 @@ const OUTSIDE		=0;
 const SHOPPING		=1;
 const STAGING		=2; 
 const INRESTAURANT 	=3;
-const ORDERING     	=4;
-const EATING       	=5;
-const EXITED  	   	=6;
-const DROPOUT 	   	=7;
+//const ORDERING     	=4;
+//const EATING       	=5;
+const EXITED  	   	=8;
+const DROPOUT 	   	=9;
 
 // for table / Cashier status
 const IDLE = 0;
@@ -238,7 +238,13 @@ function updateCustomer(customerId){
 	var hasArrived = (Math.abs(customer.target.row-row)+Math.abs(customer.target.col-col))==0;
 	
 	switch(state){
-		case OUTSIDE:
+		case OUTSIDE: //Rae
+		break;
+		case SHOPPING: //Rae
+		break;
+		case STAGING: // Moktar
+		break;
+		case INRESTAURANT: // HL
 		break;
 		default:
 		break;
