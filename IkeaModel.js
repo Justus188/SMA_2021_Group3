@@ -7,10 +7,20 @@ var surface; // Set in the redrawWindow function. It is the D3 selection of the 
 var simTimer; // Set in the initialization function
 
 // TODO: Change urls
-const urlCustomer = [NA,NA,NA,NA,NA,NA,NA,NA,NA];
-const urlTable = [NA,NA,NA,NA,NA,NA,NA,NA,NA];
-const urlDoor = NA;
-const urlQR = NA;
+const urlCustomer = ["images/1_Customer.png",
+		     "images/2_Customer.png",
+		     "images/3_Customer.png",
+		     "images/4_Customer.png",
+		     "images/5_Customer.png",
+		     "images/6_Customer.png",
+		     "images/7_Customer.png",
+		     "images/8_Customer.png"];
+const urlTable = ["images/2_Table.png",
+		  "images/3_Table.png",
+		  "images/4_Table.png",
+		  "images/8_Table.png"];
+const urlDoor = "images/Exit_Door.png";
+const urlQR = "images/Staff.png";
 
 const OUTSIDE		=0;
 const SHOPPING		=1;
