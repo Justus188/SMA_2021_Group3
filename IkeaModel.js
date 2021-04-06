@@ -266,8 +266,10 @@ function updateCustomer(customerId){
 		break;
 		case INRESTAURANT: // HL
 			if(currentTime > customer.timeLeave){
+				customer.target
 				customer.state = LEAVING;
 				customer.target = ExitLocation;
+				tables.find(d => d.row == row && d.col == col).state = IDLE;
 			}
 		break;
 		case LEAVING:
