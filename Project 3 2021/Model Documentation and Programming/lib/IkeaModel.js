@@ -97,18 +97,18 @@ var stats = [
 const paxprob = [0.07, 0.57, 0.23, 0.07, 0.04, 0.01, 0.0075, 0.0025];
 const paxcdf = [];
 paxprob.reduce(function(a,b,i) { return paxcdf[i] = a+b; },0);
-const probArrival = 1;//03371734; // mean interarrival measured to be 29.15
+const probArrival = 0.03371734; // mean interarrival measured to be 29.15
 //We assume arrivals to follow Poisson Process, which is memoryless
 //pexp(1, 29.15) = prob Arrival per s
-const serviceTime = 300; // Placeholder serviceTime for testing
+const serviceTime = 2704; // Placeholder serviceTime for testing
 
 
 
 // Random Generators and Variance Reduction
 // To see if its possible
-// seed = 123;
-// var MersenneTwister = require('mersenne-twister');
-// var RNGen = new MersenneTwister(seed);
+//seed = 123;
+//var MersenneTwister = require('mersenne-twister');
+//var RNGen = new MersenneTwister(seed);
 
 function randomInteger(min, max) {return Math.floor(Math.random() * (max - min + 1)) + min};
 	// For aesthetically placing customers in virtual queue - no effect on statistics at all
@@ -119,16 +119,16 @@ function getPax(){
 	const found = paxcdf.findIndex(element => element > randint) +1;
 	return found;}
 	
-// var gaussian = require('gaussian') // Importing from gaussian.js
-// var serviceTimeDist = gaussian(2704, 807^2);// Service Time measured to have mean 2704, sd 807
+//var gaussian = require('gaussian') // Importing from gaussian.js
+//var serviceTimeDist = gaussian(2704, 807^2);// Service Time measured to have mean 2704, sd 807
 // We assume normal distribution of Service Time
 // Usage notes: var serviceTimeSample = serviceTimeDist.ppf(Math.random())
 // function genServiceTime() {return serviceTimeDist.ppf(Math.random())}
 
-// var walkingTimeDist = gaussian(600,22500);
+//var walkingTimeDist = gaussian(600,22500);
 // We estimate time between receiving SMS and reaching the restaurant to be 10 min with standard deviation of 5min
 // translated into seconds, 600,22500
-// function genWalkingTime() {return walkingTimeDist.ppf(Math.random())} //Not implemented in main body yet
+//function genWalkingTime() {return walkingTimeDist.ppf(Math.random())} //Not implemented in main body yet
 
 
 
