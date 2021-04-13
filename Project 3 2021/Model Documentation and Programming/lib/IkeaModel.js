@@ -88,10 +88,10 @@ var stats = [
 const paxprob = [0.07, 0.57, 0.23, 0.07, 0.04, 0.01, 0.0075, 0.0025];
 const paxcdf = [];
 paxprob.reduce(function(a,b,i) { return paxcdf[i] = a+b; },0);
-const probArrival = 1//0.03371734// for stepping per simulated second: 0.03371734; // mean interarrival measured to be 29.15
+const probArrival = 0.03371734// for stepping per simulated second: 0.03371734; // mean interarrival measured to be 29.15
 // We assume arrivals to follow Poisson Process, which is memoryless
 //pexp(1, 29.15) = prob Arrival per s
-const serviceTime = 200//600+(2704-600)*Math.random(); // Using mean serviceTime
+const serviceTime = 600+(2704-600)*Math.random(); // Using mean serviceTime
 const walkingTime = 300*Math.random()
 
 
