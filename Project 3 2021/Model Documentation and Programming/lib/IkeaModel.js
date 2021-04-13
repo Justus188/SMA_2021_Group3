@@ -1,7 +1,8 @@
 // Var definitions
 var WINDOWBORDERSIZE = 10;
 var HUGE = 999999; //Sometimes useful when testing for big or small numbers
-var animationDelay = 1000/60; //controls simulation and transition speed; steps once every animationDelay ms
+var steps_per_s = 60; // 1 step is 1s in the simulation
+var animationDelay = 1000/steps_per_s; //controls simulation and transition speed; steps once every animationDelay ms
 var isRunning = false; // used in simStep and toggleSimStep
 var surface; // Set in the redrawWindow function. It is the D3 selection of the svg drawing surface
 var simTimer; // Set in the initialization function
@@ -27,13 +28,14 @@ const urlQR = "images/Staff.png";
 
 const OUTSIDE		=0;
 const SHOPPING		=1;
-const STAGING		=2; 
-const INRESTAURANT 	=3;
-//const ORDERING    =4;
-//const EATING      =5;
+const WALKING 		=2;
+const STAGING		=3; 
+const INRESTAURANT 	=4;
+//const WALKING  	    =5;
+//const EATING      =6;
 const LEAVING 		=7;
-const EXITED  	   	=8;
-const DROPOUT 	   	=9;
+const DROPOUT  	   	=8;
+const EXITED 	   	=9;
 
 // for table / Cashier status
 const IDLE = 0;
@@ -42,7 +44,7 @@ const BUSY = 1;
 const MAX_STAGING = 20;
 const EATING_AREA_SIZE = 13;
 const STAGING_SIZE = MAX_STAGING;
-var STAGING_SPOT = new Array(20).fill(0);
+var STAGING_SPOT = new Array(MAX_STAGING).fill(0);
 //var STAGING_VISUALIZER = new Array(20).fill(-1);
 Object.seal(STAGING_SPOT)
 //Object.seal(STAGING_VISUALIZER);
@@ -66,7 +68,7 @@ var cellWidth; //cellWidth is calculated in the redrawWindow function
 var cellHeight; //cellHeight is calculated in the redrawWindow function
 
 var areas = [
-	{"label":"Virtual Queue", "startRow":1, "numRows":1, "startCol": 11, "numCols": STAGING_SIZE, "color":"pink"},
+	{"label":"Virtual Queue", "startRow":1, "numRows":1, "startCol": 11, "numCols": 20, "color":"pink"},
 	{"label":"Eating Area", "startRow":6, "numRows":EATING_AREA_SIZE, "startCol": 11, "numCols": 20, "color":"yellow"}
 ];
 
@@ -83,24 +85,22 @@ function table_pax_maker (i){
 var tables = Array.apply(null, {length: numTables.reduce((a,b) => a + b['numTables'],0)}).map(
 	function(d,i){return {"row": 6+Math.floor(i/10), "col": 11+ (i%10)*2, "state": IDLE, "pax": table_pax_maker(i)}})
 
-console.log(tables);
-
 var currentTime = 0;
 var stats = [
-	{"name":"Mean Waiting Time: ", "location":{"row":6+EATING_AREA_SIZE+4, "col": 11}, "cumulativeValue":0, "count":0},
+	{"name":"Mean Waiting Time (s): ", "location":{"row":6+EATING_AREA_SIZE+4, "col": 11}, "cumulativeValue":0, "count":0},
 	{"name":"Mean Idle Tables: ",  "location":{"row":6+EATING_AREA_SIZE+5, "col": 11}, "cumulativeValue":0, "count":0},
-	{"name":"Mean Turnover: ", "location":{"row":6+EATING_AREA_SIZE+6, "col": 11}, "cumulativeValue":0, "count":0},
-	{"name":"Mean Dropout: ", "location":{"row":6+EATING_AREA_SIZE+7, "col": 11}, "cumulativeValue":0, "count":0}
+	{"name":"Mean Turnover (/h): ", "location":{"row":6+EATING_AREA_SIZE+6, "col": 11}, "cumulativeValue":0, "count":0}
 ];
 
 // From collecting our own data onsite at Ikea Restaurant,
 const paxprob = [0.07, 0.57, 0.23, 0.07, 0.04, 0.01, 0.0075, 0.0025];
 const paxcdf = [];
 paxprob.reduce(function(a,b,i) { return paxcdf[i] = a+b; },0);
-const probArrival = 0.03371734; // mean interarrival measured to be 29.15
-//We assume arrivals to follow Poisson Process, which is memoryless
+const probArrival = 1//0.03371734// for stepping per simulated second: 0.03371734; // mean interarrival measured to be 29.15
+// We assume arrivals to follow Poisson Process, which is memoryless
 //pexp(1, 29.15) = prob Arrival per s
-const serviceTime = 2704; // Placeholder serviceTime for testing
+const serviceTime = 200//2704; // Using mean serviceTime
+const walkingTime = 200
 
 
 
@@ -130,6 +130,7 @@ function getPax(){
 // translated into seconds, 600,22500
 //function genWalkingTime() {return walkingTimeDist.ppf(Math.random())} //Not implemented in main body yet
 
+function genDropout() {return Math.random() > 107/159}
 
 
 // Actual functions
@@ -152,13 +153,13 @@ function toggleStaging(){
 	isStaging = !isStaging
 	if(isStaging){
 		areas = [
-			{"label":"Virtual Queue", "startRow":1, "numRows":1, "startCol": 11, "numCols": STAGING_SIZE, "color":"pink"},
+			{"label":"Virtual Queue", "startRow":1, "numRows":1, "startCol": 11, "numCols": 20, "color":"pink"},
 			{"label":"Staging Area", "startRow":4, "numRows":1, "startCol": 11, "numCols": STAGING_SIZE, "color":"red"},
 			{"label":"Eating Area", "startRow":6, "numRows":EATING_AREA_SIZE, "startCol": 11, "numCols": 20, "color":"yellow"}
 		];
 	} else {
 		areas = [
-			{"label":"Virtual Queue", "startRow":1, "numRows":1, "startCol": 11, "numCols": STAGING_SIZE, "color":"pink"},
+			{"label":"Virtual Queue", "startRow":1, "numRows":1, "startCol": 11, "numCols": 20, "color":"pink"},
 			{"label":"Eating Area", "startRow":6, "numRows":EATING_AREA_SIZE, "startCol": 11, "numCols": 20, "color":"yellow"}
 		];
 	}
@@ -295,52 +296,49 @@ function addDynamicAgents(){
 	// Customers are dynamic
 	if (Math.random()< probArrival){
 		var newCustomer = {"id":++nextCustomerId, "location":{"row":1,"col":1},
-		"target":{"row": 2, "col": 20},"state":OUTSIDE,"timeQR":0, "timeEnter":0, "timeLeave":0};
+		"target":{"row": 2, "col": 20},"walking_to":{"row":NaN, "col": NaN},"state":OUTSIDE,"timeQR":0, "timeSMS":0, "timeEnter":0, "timeLeave":0,"checkdropout": 0};
 		newCustomer.pax = getPax();
 		customers.push(newCustomer);
 	}
+}
+
+function seatCustomer(empty_table, customer, stats){
+	//update state
+	empty_table.state = BUSY;
+	customer.state= INRESTAURANT;
+	//update target
+	customer.target.row= empty_table.row;
+	customer.target.col= empty_table.col;
+	//stats
+	customer.timeEnter = currentTime;
+	customer.timeLeave = currentTime + serviceTime;//genServiceTime();
+	stats[0].cumulativeValue = customer.timeEnter - customer.timeQR;
+	stats[0].count++;
+	return [empty_table, customer, stats]
 }
 
 function updateCustomer(customerId){
 	customerId = Number(customerId);
 	var customer = customers[customerId];
 	customerId = customer["id"];
-	var row = customer.location.row;
-	var col = customer.location.col;
 	var state = customer.state;
 	var empty_table = tables.find(function(d){return d.state==IDLE && d.pax >= customer.pax});
 	//console.log(`EMPTY_TABLE: ${empty_table}`);
-	
+	var empty_staging_spot= STAGING_SPOT.findIndex((d) => d ==0)
 	var hasArrived = (Math.abs(customer.target.row-customer.location.row)+Math.abs(customer.target.col-customer.location.col))==0;
-	
+	var customerposition = customer.target.col-11; 
 	switch(state){
 		case OUTSIDE:
 			if (hasArrived) {
-				//update state
-				customer.state = SHOPPING;
-				//update target
-				customer.target.row = randomInteger(areas[0].startRow, (areas[0].startRow + areas[0].numRows -1));
-				customer.target.col = randomInteger(areas[0].startCol, (areas[0].startCol + areas[0].numCols -1));
-				//stats
+				//log QR
 				customer.timeQR = currentTime;
-			}
-		break;
-		case SHOPPING:
-			if(isStaging) {
-				var empty_staging_spot = STAGING_SPOT.findIndex((d) => d===0)
-				if (STAGING_SPOT.every((d) => d ==0) && empty_table !== undefined){
-					//update state
-					empty_table.state = BUSY;
-					customer.state= INRESTAURANT;
-					//update target
-					customer.target.row= empty_table.row;
-					customer.target.col= empty_table.col;
-					//stats
-					customer.timeEnter = currentTime;
-					customer.timeLeave = currentTime + serviceTime;//genServiceTime();
-					stats[0].cumulativeValue = customer.timeEnter - customer.timeQR;
-					stats[0].count++;
-				} else if (empty_staging_spot >= 0) {
+				if (empty_table !== undefined && ((isStaging && STAGING_SPOT.every((d) => d ==0)) || !isStaging)){
+					var new_state = seatCustomer(empty_table, customer, stats)
+					empty_table = new_state[0]
+					customer = new_state[1]
+					stats = new_state[2]
+				} else if (isStaging && empty_staging_spot >= 0){
+					console.log("Cut queue:", customer.id)
 					//update state
 					STAGING_SPOT[empty_staging_spot]=1;
 					//STAGING_VISUALIZER[empty_staging_spot]=customerId;
@@ -348,42 +346,87 @@ function updateCustomer(customerId){
 					//update target
 					customer.target.col = empty_staging_spot + 11;
 					customer.target.row = areas[1].startRow;
-				}
-			} else {
-				if (empty_table !== undefined){	
+				} else {
 					//update state
-					empty_table.state = BUSY;
-					customer.state= INRESTAURANT;
+					customer.state = SHOPPING;
 					//update target
-					customer.target.row= empty_table.row;
-					customer.target.col= empty_table.col;
-					//stats
-					customer.timeEnter = currentTime;
-					customer.timeLeave = currentTime + serviceTime;//genServiceTime();
-					stats[0].cumulativeValue = customer.timeEnter - customer.timeQR;
-					stats[0].count++;
+					customer.target.row = randomInteger(areas[0].startRow, (areas[0].startRow + areas[0].numRows -1));
+					customer.target.col = randomInteger(areas[0].startCol, (areas[0].startCol + areas[0].numCols -1));
 				}
 			}
 		break;
-		case STAGING:
-			var customerposition = customer.target.col-11;  
-			if (empty_table !== undefined){	
+		case SHOPPING:
+			if (customer.isdropout == 0) {
+				if (genDropout()){
+					//update state
+					customer.checkdropout = 1
+					customer.state = DROPOUT;
+					//update target
+					customer.walking_to = ExitLocation;
+				} else {
+					customer.checkdropout = 1
+				}
+			} else if (isStaging && empty_staging_spot >= 0){
+				console.log(STAGING_SPOT)
+				//update state
+				customer.state = WALKING
+				STAGING_SPOT[empty_staging_spot]= -1;
+				//STAGING_VISUALIZER[empty_staging_spot]=customerId;
+				//update timing
+				customer.timeSMS = currentTime
+				customer.timeEnter = currentTime + walkingTime //genWalkingTime()
+				//update target
+				customer.target = {"row": 3, "col": 35}
+				customer.walking_to.col = empty_staging_spot+11;
+				customer.walking_to.row = areas[1].startRow;
+
+			} else if (!isStaging && empty_table !== undefined){
+				//update state
+				customer.state = WALKING
+				empty_table.state = BUSY
+				//update timings
+				customer.timeSMS = currentTime
+				customer.timeEnter = currentTime + walkingTime //genWalkingTime()
+				//update target
+				customer.target = {"row": 3, "col": 35}
+				customer.walking_to = {"row":empty_table.row, "col": empty_table.col}
+			}
+		break;
+		case WALKING:
+			customerpositon = customer.walking_to.col - 11
+			if (customer.timeEnter <= currentTime){
+				customer.target = customer.walking_to
+				customer.walking_to = {"row":NaN, "col":NaN}
+				if(isStaging) {
+					customer.state = STAGING
+				} else { 
+					customer.state = INRESTAURANT
+					customer.timeEnter = currentTime;
+					customer.timeLeave = currentTime + serviceTime;//genServiceTime();
+				}
+			}
+			if(isStaging && customerposition!==0 && STAGING_SPOT[customerposition-1]==0){
+				//update state
+				STAGING_SPOT[customerposition]=0;
+				//STAGING_VISUALIZER[customerposition]=-1;
+				STAGING_SPOT[customerposition-1]= -1;
+				//STAGING_VISUALIZER[customerposition-1]=customerId;
+				//update target
+				customer.walking_to.col=customer.walking_to.col-1;
+			}
+		break;
+		case STAGING: 
+			if ((customerposition == 0 || STAGING_SPOT.slice(0,customerposition).every((d)=> d==-1)) && empty_table !== undefined){	
 				//update state
 				//console.log(STAGING_SPOT)
 				STAGING_SPOT[customerposition]=0;
 				//STAGING_VISUALIZER[customerposition]=-1;
 				//console.log(STAGING_SPOT)
-				empty_table.state = BUSY;
-				customer.state= INRESTAURANT;
-				//update target
-				customer.target.row= empty_table.row;
-				customer.target.col= empty_table.col;
-				//stats
-				customer.timeEnter = currentTime;
-				customer.timeLeave = currentTime + serviceTime;//genServiceTime();
-				stats[0].cumulativeValue = customer.timeEnter - customer.timeQR;
-				stats[0].count++;
-			} else if(hasArrived && customerposition!==0 && STAGING_SPOT[customerposition-1]==0){
+				var new_state = seatCustomer(empty_table, customer, stats)
+				empty_table = new_state[0]
+				customer = new_state[1]
+				stats = new_state[2]
+			} else if(customerposition!==0 && STAGING_SPOT[customerposition-1]==0){
 				//update state
 				STAGING_SPOT[customerposition]=0;
 				//STAGING_VISUALIZER[customerposition]=-1;
@@ -400,6 +443,14 @@ function updateCustomer(customerId){
 				tables.find(d => (d.row == customer.location.row && d.col == customer.location.col)).state = IDLE;
 				//update target
 				customer.target = ExitLocation;
+			}
+		break;
+		case DROPOUT:
+			if (customer.timeSMS >= currentTime){
+				customer.state = LEAVING;
+
+				customer.target = customer.walking_to
+				customer.walking_to = {"row":NaN, "col":NaN}
 			}
 		break;
 		case LEAVING:
@@ -441,8 +492,8 @@ function updateDynamicAgents(){
 		updateCustomer(customerId);
 	}
 	stats[1].cumulativeValue += 122 - tables.reduce((a,b) => a + b.state, 0); //Update Idle tables
-	stats[1].count++; //tick time for idle tables
-	stats[2].count++; 
+	stats[1].count+= 1; //tick time for idle tables
+	stats[2].count+= 1/(60*60); 
 	updateSurface();
 }
 	
