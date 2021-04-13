@@ -8,7 +8,6 @@ var surface; // Set in the redrawWindow function. It is the D3 selection of the 
 var simTimer; // Set in the initialization function
 var isStaging = false; // Set in toggleStaging
 
-// TODO: Change urls
 const urlCustomer = [0,
 	"images/1_Customer.png",
 	"images/2_Customer.png",
@@ -31,8 +30,6 @@ const SHOPPING		=1;
 const WALKING 		=2;
 const STAGING		=3; 
 const INRESTAURANT 	=4;
-//const WALKING  	    =5;
-//const EATING      =6;
 const LEAVING 		=7;
 const DROPOUT  	   	=8;
 const EXITED 	   	=9;
@@ -41,18 +38,16 @@ const EXITED 	   	=9;
 const IDLE = 0;
 const BUSY = 1;
 
-const MAX_STAGING = 20;
-const EATING_AREA_SIZE = 13;
-const STAGING_SIZE = MAX_STAGING;
-var STAGING_SPOT = new Array(MAX_STAGING).fill(0);
-//var STAGING_VISUALIZER = new Array(20).fill(-1);
-Object.seal(STAGING_SPOT)
-//Object.seal(STAGING_VISUALIZER);
+const EATING_AREA_SIZE = 12;
+var STAGING_SIZE;
+var STAGING_SPOT;
+const STARTCOL = 1;
 
 const QR = 0;
-const QRLocation = {"row": 2, "col": 20};
+const QRLocation = {"row": 2, "col": STARTCOL+9};
+Object.freeze(QRLocation)
 const EXIT = 9;
-const ExitLocation = {"row": 6+EATING_AREA_SIZE+1,"col": 20};
+const ExitLocation = {"row": EATING_AREA_SIZE +7,"col": STARTCOL+9};
 
 var nextCustomerId = 0;
 
@@ -67,10 +62,7 @@ const maxCols = 40;
 var cellWidth; //cellWidth is calculated in the redrawWindow function
 var cellHeight; //cellHeight is calculated in the redrawWindow function
 
-var areas = [
-	{"label":"Virtual Queue", "startRow":1, "numRows":1, "startCol": 11, "numCols": 20, "color":"pink"},
-	{"label":"Eating Area", "startRow":6, "numRows":EATING_AREA_SIZE, "startCol": 11, "numCols": 20, "color":"yellow"}
-];
+var areas;
 
 const numTables = [
 	{"pax": 2, "numTables": 3},
@@ -83,13 +75,13 @@ function table_pax_maker (i){
 	else if (i < 3+15+75+19) {return 8} else {return 0}
 };
 var tables = Array.apply(null, {length: numTables.reduce((a,b) => a + b['numTables'],0)}).map(
-	function(d,i){return {"row": 6+Math.floor(i/10), "col": 11+ (i%10)*2, "state": IDLE, "pax": table_pax_maker(i)}})
+	function(d,i){return {"row": 6+Math.floor(i/10), "col": STARTCOL+ (i%10)*2, "state": IDLE, "pax": table_pax_maker(i)}})
 
 var currentTime = 0;
 var stats = [
-	{"name":"Mean Waiting Time (s): ", "location":{"row":6+EATING_AREA_SIZE+4, "col": 11}, "cumulativeValue":0, "count":0},
-	{"name":"Mean Idle Tables: ",  "location":{"row":6+EATING_AREA_SIZE+5, "col": 11}, "cumulativeValue":0, "count":0},
-	{"name":"Mean Turnover (/h): ", "location":{"row":6+EATING_AREA_SIZE+6, "col": 11}, "cumulativeValue":0, "count":0}
+	{"name":"Mean Waiting Time (s): ", "location":{"row":3, "col": STARTCOL+22}, "cumulativeValue":0, "count":0},
+	{"name":"Mean Idle Tables: ",  "location":{"row":4, "col": STARTCOL+22}, "cumulativeValue":0, "count":0},
+	{"name":"Mean Turnover (/h): ", "location":{"row":5, "col": STARTCOL+22}, "cumulativeValue":0, "count":0}
 ];
 
 // From collecting our own data onsite at Ikea Restaurant,
@@ -99,8 +91,8 @@ paxprob.reduce(function(a,b,i) { return paxcdf[i] = a+b; },0);
 const probArrival = 1//0.03371734// for stepping per simulated second: 0.03371734; // mean interarrival measured to be 29.15
 // We assume arrivals to follow Poisson Process, which is memoryless
 //pexp(1, 29.15) = prob Arrival per s
-const serviceTime = 200//2704; // Using mean serviceTime
-const walkingTime = 200
+const serviceTime = 200//600+(2704-600)*Math.random(); // Using mean serviceTime
+const walkingTime = 300*Math.random()
 
 
 
@@ -149,29 +141,41 @@ function toggleSimStep(){
 	//console.log("isRunning: "+isRunning);
 }
 
-function toggleStaging(){
-	isStaging = !isStaging
+function genArea(){
 	if(isStaging){
 		areas = [
-			{"label":"Virtual Queue", "startRow":1, "numRows":1, "startCol": 11, "numCols": 20, "color":"pink"},
-			{"label":"Staging Area", "startRow":4, "numRows":1, "startCol": 11, "numCols": STAGING_SIZE, "color":"red"},
-			{"label":"Eating Area", "startRow":6, "numRows":EATING_AREA_SIZE, "startCol": 11, "numCols": 20, "color":"yellow"}
+			{"label":"Virtual Queue", "startRow":1, "numRows":1, "startCol": STARTCOL, "numCols": 20, "color":"pink"},
+			{"label":"Staging Area", "startRow":4, "numRows":1, "startCol": STARTCOL, "numCols": STAGING_SIZE, "color":"red"},
+			{"label":"Eating Area", "startRow":6, "numRows":EATING_AREA_SIZE, "startCol": STARTCOL, "numCols": 20, "color":"yellow"}
 		];
 	} else {
 		areas = [
-			{"label":"Virtual Queue", "startRow":1, "numRows":1, "startCol": 11, "numCols": 20, "color":"pink"},
-			{"label":"Eating Area", "startRow":6, "numRows":EATING_AREA_SIZE, "startCol": 11, "numCols": 20, "color":"yellow"}
+			{"label":"Virtual Queue", "startRow":1, "numRows":1, "startCol": STARTCOL, "numCols": 20, "color":"pink"},
+			{"label":"Eating Area", "startRow":6, "numRows":EATING_AREA_SIZE, "startCol": STARTCOL, "numCols": 20, "color":"yellow"}
 		];
 	}
+}
+
+function toggleStaging(){
+	isStaging = !isStaging
 	redrawWindow()
+}
+
+function toggleStagingSize(){
+	
 }
 
 function redrawWindow(){
 	isRunning = false; // used by simStep
 	window.clearInterval(simTimer); // clear the Timer
-	animationDelay = 550 - document.getElementById("slider1").value;
+	steps_per_s = Number(document.getElementById("slider1").value)
+	animationDelay = 1000/steps_per_s;
 	simTimer = window.setInterval(simStep, animationDelay); // call the function simStep every animationDelay milliseconds
 	
+	STAGING_SIZE = Number(document.getElementById("sliderStageSize").value)
+	STAGING_SPOT = new Array(STAGING_SIZE).fill(0)
+	Object.seal(STAGING_SPOT)
+	genArea()
 	// Re-initialize simulation variables
 	
 	currentTime = 0;
@@ -180,7 +184,6 @@ function redrawWindow(){
 	customers = [];
 	tables.map(d => d.state = IDLE);
 	STAGING_SPOT.fill(0);
-	// STAGING_VISUALIZER.fill(-1);
 	
 	//resize the drawing surface; remove all its contents; 
 	var drawsurface = document.getElementById("surface");
@@ -295,8 +298,8 @@ function updateSurface() {
 function addDynamicAgents(){
 	// Customers are dynamic
 	if (Math.random()< probArrival){
-		var newCustomer = {"id":++nextCustomerId, "location":{"row":1,"col":1},
-		"target":{"row": 2, "col": 20},"walking_to":{"row":NaN, "col": NaN},"state":OUTSIDE,"timeQR":0, "timeSMS":0, "timeEnter":0, "timeLeave":0,"checkdropout": 0};
+		var newCustomer = {"id":++nextCustomerId, "location":{"row":2,"col":1},
+		"target":{"row":2, "col": 10},"walking_to":{"row":NaN, "col": NaN},"state":OUTSIDE,"timeQR":0, "timeSMS":0, "timeEnter":0, "timeLeave":0,"checkdropout": 0};
 		newCustomer.pax = getPax();
 		customers.push(newCustomer);
 	}
@@ -317,34 +320,30 @@ function seatCustomer(empty_table, customer, stats){
 	return [empty_table, customer, stats]
 }
 
-function updateCustomer(customerId){
-	customerId = Number(customerId);
-	var customer = customers[customerId];
-	customerId = customer["id"];
+function updateCustomer(customersIdx){
+	customersIdx = Number(customersIdx);
+	var customer = customers[customersIdx];
 	var state = customer.state;
 	var empty_table = tables.find(function(d){return d.state==IDLE && d.pax >= customer.pax});
-	//console.log(`EMPTY_TABLE: ${empty_table}`);
 	var empty_staging_spot= STAGING_SPOT.findIndex((d) => d ==0)
 	var hasArrived = (Math.abs(customer.target.row-customer.location.row)+Math.abs(customer.target.col-customer.location.col))==0;
-	var customerposition = customer.target.col-11; 
+	var customerposition = customer.target.col-STARTCOL; 
 	switch(state){
 		case OUTSIDE:
 			if (hasArrived) {
 				//log QR
 				customer.timeQR = currentTime;
-				if (empty_table !== undefined && ((isStaging && STAGING_SPOT.every((d) => d ==0)) || !isStaging)){
+				if (empty_table !== undefined && ((isStaging && STAGING_SPOT.every((d) => d <1)) || !isStaging)){
 					var new_state = seatCustomer(empty_table, customer, stats)
 					empty_table = new_state[0]
 					customer = new_state[1]
 					stats = new_state[2]
 				} else if (isStaging && empty_staging_spot >= 0){
-					console.log("Cut queue:", customer.id)
 					//update state
 					STAGING_SPOT[empty_staging_spot]=1;
-					//STAGING_VISUALIZER[empty_staging_spot]=customerId;
 					customer.state = STAGING;
 					//update target
-					customer.target.col = empty_staging_spot + 11;
+					customer.target.col = empty_staging_spot + STARTCOL;
 					customer.target.row = areas[1].startRow;
 				} else {
 					//update state
@@ -371,13 +370,12 @@ function updateCustomer(customerId){
 				//update state
 				customer.state = WALKING
 				STAGING_SPOT[empty_staging_spot]= -1;
-				//STAGING_VISUALIZER[empty_staging_spot]=customerId;
 				//update timing
 				customer.timeSMS = currentTime
 				customer.timeEnter = currentTime + walkingTime //genWalkingTime()
 				//update target
-				customer.target = {"row": 3, "col": 35}
-				customer.walking_to.col = empty_staging_spot+11;
+				customer.target = {"row": 3, "col": STARTCOL+22}
+				customer.walking_to.col = empty_staging_spot+STARTCOL;
 				customer.walking_to.row = areas[1].startRow;
 
 			} else if (!isStaging && empty_table !== undefined){
@@ -388,12 +386,12 @@ function updateCustomer(customerId){
 				customer.timeSMS = currentTime
 				customer.timeEnter = currentTime + walkingTime //genWalkingTime()
 				//update target
-				customer.target = {"row": 3, "col": 35}
+				customer.target =  {"row": 3, "col": STARTCOL+22}
 				customer.walking_to = {"row":empty_table.row, "col": empty_table.col}
 			}
 		break;
 		case WALKING:
-			customerpositon = customer.walking_to.col - 11
+			customerpositon = customer.walking_to.col - STARTCOL
 			if (customer.timeEnter <= currentTime){
 				customer.target = customer.walking_to
 				customer.walking_to = {"row":NaN, "col":NaN}
@@ -408,9 +406,7 @@ function updateCustomer(customerId){
 			if(isStaging && customerposition!==0 && STAGING_SPOT[customerposition-1]==0){
 				//update state
 				STAGING_SPOT[customerposition]=0;
-				//STAGING_VISUALIZER[customerposition]=-1;
 				STAGING_SPOT[customerposition-1]= -1;
-				//STAGING_VISUALIZER[customerposition-1]=customerId;
 				//update target
 				customer.walking_to.col=customer.walking_to.col-1;
 			}
@@ -418,10 +414,7 @@ function updateCustomer(customerId){
 		case STAGING: 
 			if ((customerposition == 0 || STAGING_SPOT.slice(0,customerposition).every((d)=> d==-1)) && empty_table !== undefined){	
 				//update state
-				//console.log(STAGING_SPOT)
 				STAGING_SPOT[customerposition]=0;
-				//STAGING_VISUALIZER[customerposition]=-1;
-				//console.log(STAGING_SPOT)
 				var new_state = seatCustomer(empty_table, customer, stats)
 				empty_table = new_state[0]
 				customer = new_state[1]
@@ -429,9 +422,7 @@ function updateCustomer(customerId){
 			} else if(customerposition!==0 && STAGING_SPOT[customerposition-1]==0){
 				//update state
 				STAGING_SPOT[customerposition]=0;
-				//STAGING_VISUALIZER[customerposition]=-1;
 				STAGING_SPOT[customerposition-1]=1;
-				//STAGING_VISUALIZER[customerposition-1]=customerId;
 				//update target
 				customer.target.col=customer.target.col-1;
 			}
@@ -447,8 +438,9 @@ function updateCustomer(customerId){
 		break;
 		case DROPOUT:
 			if (customer.timeSMS >= currentTime){
+				//update state
 				customer.state = LEAVING;
-
+				//update target
 				customer.target = customer.walking_to
 				customer.walking_to = {"row":NaN, "col":NaN}
 			}
@@ -470,7 +462,7 @@ function updateCustomer(customerId){
 		var rowsToGo = targetRow - customer.location.row;
 		var colsToGo = targetCol - customer.location.col;
 		// set the speed
-		var cellsPerStep = 1; //LOOK AT THIS LATER
+		var cellsPerStep = 1;
 		// compute the cell to move to
 		var newRow = customer.location.row + Math.min(Math.abs(rowsToGo),cellsPerStep)*Math.sign(rowsToGo);
 		var newCol = customer.location.col + Math.min(Math.abs(colsToGo),cellsPerStep)*Math.sign(colsToGo);
@@ -488,8 +480,8 @@ function removeDynamicAgents() {
 }
 	
 function updateDynamicAgents(){
-	for (var customerId in customers){
-		updateCustomer(customerId);
+	for (var customersIdx in customers){
+		updateCustomer(customersIdx);
 	}
 	stats[1].cumulativeValue += 122 - tables.reduce((a,b) => a + b.state, 0); //Update Idle tables
 	stats[1].count+= 1; //tick time for idle tables
@@ -501,7 +493,6 @@ function simStep(){
 	//This function is called by a timer; if running, it executes one simulation step 
 	//The timing interval is set in the page initialization function near the top of this file
 	if (isRunning){ //the isRunning variable is toggled by toggleSimStep
-		//console.log(`BEFORE ${currentTime}: ${STAGING_VISUALIZER}`);
 		// Increment current time (for computing statistics)
 		currentTime++;
 		// Sometimes new agents will be created in the following function
@@ -510,6 +501,5 @@ function simStep(){
 		updateDynamicAgents();
 		// Sometimes agents will be removed in the following function
 		removeDynamicAgents();
-		//console.log(`AFTER ${currentTime}: ${STAGING_VISUALIZER}`);
 	}
 }
