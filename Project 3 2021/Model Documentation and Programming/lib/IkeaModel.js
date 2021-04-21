@@ -442,7 +442,7 @@ function updateCustomer(customersIdx){
 				customer.state = LEAVING;
 				tables.find(d => (d.row == customer.location.row && d.col == customer.location.col)).state = IDLE;
 				//update target
-				customer.target = Location;
+				customer.target = ExitLocation;
 			}
 		break;
 		case DROPOUT:
