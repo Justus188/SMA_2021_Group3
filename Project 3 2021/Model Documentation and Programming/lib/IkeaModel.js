@@ -8,6 +8,11 @@ var surface; // Set in the redrawWindow function. It is the D3 selection of the 
 var simTimer; // Set in the initialization function
 var isStaging = false; // Set in toggleStaging
 
+
+var statsdatalist = [""] //to save stats data to a blob at the end of simulation
+var logTimer; //to call logStep every unit time to push stats data to statsdatalist 
+
+
 const urlCustomer = [0,
 	"images/1_Customer.png",
 	"images/2_Customer.png",
@@ -168,9 +173,11 @@ function toggleStagingSize(){
 function redrawWindow(){
 	isRunning = false; // used by simStep
 	window.clearInterval(simTimer); // clear the Timer
+	window.clearInterval(logTimer); //clear output stats Timer 
 	steps_per_s = Number(document.getElementById("slider1").value)
 	animationDelay = 1000/steps_per_s;
 	simTimer = window.setInterval(simStep, animationDelay); // call the function simStep every animationDelay milliseconds
+	logTimer = window.setInterval(logStep, animationDelay*10000) //call the function logStep every animationDelay*10000 milliseconds
 	
 	STAGING_SIZE = Number(document.getElementById("sliderStageSize").value)
 	STAGING_SPOT = new Array(STAGING_SIZE).fill(0)
@@ -184,6 +191,7 @@ function redrawWindow(){
 	customers = [];
 	tables.map(d => d.state = IDLE);
 	STAGING_SPOT.fill(0);
+	statsdatalist = [""];
 	
 	//resize the drawing surface; remove all its contents; 
 	var drawsurface = document.getElementById("surface");
@@ -272,6 +280,7 @@ function updateSurface() {
 		var display = d.cumulativeValue / (Math.max(1, d.count));
 		return d.name + display.toFixed(1);
 	});
+		
 	
 	// Boxes around areas
 	var allAreas = surface.selectAll(".areas").data(areas);
@@ -503,3 +512,19 @@ function simStep(){
 		removeDynamicAgents();
 	}
 }
+
+function logStep(){
+	if (isRunning){
+
+	var outputwaitingtime = stats[0].cumulativeValue / (Math.max(1, stats[0].count));
+	var ouputidletables = stats[1].cumulativeValue / (Math.max(1, stats[1].count));
+	var outputturnover = stats[2].cumulativeValue / (Math.max(1, stats[2].count));
+	
+	statsdatalist.push([currentTime, outputwaitingtime, ouputidletables, outputturnover],"\n");
+	
+	
+	
+		
+	}
+}
+

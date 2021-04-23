@@ -7,7 +7,20 @@
 
 		<!-- d3 is for data visualization -->
 		<script type="text/javascript" src="lib/d3.min.js"></script>
-		
+		<script src="lib/FileSaver.js"></script>
+
+		<script>
+
+			function saveDynamicDataToFile() {
+	
+			
+				var blob = new Blob([statsdatalist], { type: "text/plain;charset=utf-8" , endings: "native"});
+				saveAs(blob, "dynamic.txt");
+			}
+	
+		</script>
+
+
 		
 		<!-- custom styles for this application -->
 		<link rel="stylesheet" href="styles/IkeaModel.css" media="screen">
@@ -29,6 +42,7 @@
 	</div>
 	
 	<a id="credits" href="http://www.flaticon.com" style="position:absolute;bottom:0;right:0">Icons by Flaticon</a>
+	<button type="button" onclick="saveDynamicDataToFile();">Click to Save</button>
 	
 	
 	
