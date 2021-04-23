@@ -169,10 +169,6 @@ function toggleStaging(){
 	redrawWindow()
 }
 
-function toggleStagingSize(){
-	
-}
-
 function redrawWindow(){
 	isRunning = false; // used by simStep
 	window.clearInterval(simTimer); // clear the Timer
@@ -398,6 +394,8 @@ function updateCustomer(customersIdx){
 				//update timings
 				customer.timeSMS = currentTime
 				customer.timeEnter = currentTime + walkingTime()
+				stats[0].cumulativeValue += customer.timeEnter - customer.timeQR
+				stats[0].count++
 				//update target
 				customer.target =  {"row": 3, "col": STARTCOL+22}
 				customer.walking_to = {"row":empty_table.row, "col": empty_table.col}
