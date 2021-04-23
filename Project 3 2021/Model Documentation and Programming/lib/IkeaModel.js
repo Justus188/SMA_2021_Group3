@@ -94,11 +94,13 @@ var stats = [
 const paxprob = [0.07, 0.57, 0.23, 0.07, 0.04, 0.01, 0.0075, 0.0025];
 const paxcdf = [];
 paxprob.reduce(function(a,b,i) { return paxcdf[i] = a+b; },0);
-const probArrival = 0.03371734// for stepping per simulated second: 0.03371734; // mean interarrival measured to be 29.15
+const probArrival = 0.55// The actual statistics don't stablise in a reasonable timeframe
+// Due to limitations on computational resources, a placeholder value is used instead
+// Actual value: 0.03371734// for stepping per simulated second: 0.03371734; // mean interarrival measured to be 29.15
 // We assume arrivals to follow Poisson Process, which is memoryless
 //pexp(1, 29.15) = prob Arrival per s
-const serviceTime = 600+(2704-600)*Math.random(); // Using mean serviceTime
-const walkingTime = 300*Math.random()
+function serviceTime() {return 100 + 300*Math.random()}// Same as above; 600+(2704-600)*Math.random(); // Using mean serviceTime
+function walkingTime() {return 10 + 90*Math.random()}// Same as above; 300*Math.random()
 
 
 
@@ -325,7 +327,7 @@ function seatCustomer(empty_table, customer, stats){
 	customer.target.col= empty_table.col;
 	//stats
 	customer.timeEnter = currentTime;
-	customer.timeLeave = currentTime + serviceTime;//genServiceTime();
+	customer.timeLeave = currentTime + serviceTime();
 	stats[0].cumulativeValue = customer.timeEnter - customer.timeQR;
 	stats[0].count++;
 	return [empty_table, customer, stats]
@@ -383,7 +385,7 @@ function updateCustomer(customersIdx){
 				STAGING_SPOT[empty_staging_spot]= -1;
 				//update timing
 				customer.timeSMS = currentTime
-				customer.timeEnter = currentTime + walkingTime //genWalkingTime()
+				customer.timeEnter = currentTime + walkingTime()
 				//update target
 				customer.target = {"row": 3, "col": STARTCOL+22}
 				customer.walking_to.col = empty_staging_spot+STARTCOL;
@@ -395,7 +397,7 @@ function updateCustomer(customersIdx){
 				empty_table.state = BUSY
 				//update timings
 				customer.timeSMS = currentTime
-				customer.timeEnter = currentTime + walkingTime //genWalkingTime()
+				customer.timeEnter = currentTime + walkingTime()
 				//update target
 				customer.target =  {"row": 3, "col": STARTCOL+22}
 				customer.walking_to = {"row":empty_table.row, "col": empty_table.col}
@@ -411,7 +413,7 @@ function updateCustomer(customersIdx){
 				} else { 
 					customer.state = INRESTAURANT
 					customer.timeEnter = currentTime;
-					customer.timeLeave = currentTime + serviceTime;//genServiceTime();
+					customer.timeLeave = currentTime + serviceTime();
 				}
 			}
 			if(isStaging && customerposition!==0 && STAGING_SPOT[customerposition-1]==0){
