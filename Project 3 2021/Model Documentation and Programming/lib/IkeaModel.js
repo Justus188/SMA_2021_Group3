@@ -1,7 +1,7 @@
 // Var definitions
 var WINDOWBORDERSIZE = 10;
 var HUGE = 999999; //Sometimes useful when testing for big or small numbers
-var steps_per_s = 60; // 1 step is 1s in the simulation
+var steps_per_s = 250*60; // 1 step is 1s in the simulation
 var animationDelay = 1000/steps_per_s; //controls simulation and transition speed; steps once every animationDelay ms
 var isRunning = false; // used in simStep and toggleSimStep
 var surface; // Set in the redrawWindow function. It is the D3 selection of the svg drawing surface
@@ -86,7 +86,8 @@ var currentTime = 0;
 var stats = [
 	{"name":"Mean Waiting Time (s): ", "location":{"row":3, "col": STARTCOL+22}, "cumulativeValue":0, "count":0},
 	{"name":"Mean Idle Tables: ",  "location":{"row":4, "col": STARTCOL+22}, "cumulativeValue":0, "count":0},
-	{"name":"Mean Turnover (/h): ", "location":{"row":5, "col": STARTCOL+22}, "cumulativeValue":0, "count":0}
+	{"name":"Mean Turnover (/h): ", "location":{"row":5, "col": STARTCOL+22}, "cumulativeValue":0, "count":0},
+	{"name":"Time:", "location":{"row": 6, "col": STARTCOL+22}, "cumulativeValue":0, "count":1}
 ];
 
 // From collecting our own data onsite at Ikea Restaurant,
@@ -174,8 +175,8 @@ function redrawWindow(){
 	isRunning = false; // used by simStep
 	window.clearInterval(simTimer); // clear the Timer
 	window.clearInterval(logTimer); //clear output stats Timer 
-	steps_per_s = Number(document.getElementById("slider1").value)
-	animationDelay = 1000/steps_per_s;
+	//steps_per_s = Number(document.getElementById("slider1").value)
+	//animationDelay = 1000/steps_per_s;
 	simTimer = window.setInterval(simStep, animationDelay); // call the function simStep every animationDelay milliseconds
 	logTimer = window.setInterval(logStep, animationDelay*10000) //call the function logStep every animationDelay*10000 milliseconds
 	
@@ -188,6 +189,7 @@ function redrawWindow(){
 	currentTime = 0;
 	nextCustomerId = 0;
 	stats.map(function(d){d.count=0; d.cumulativeValue=0;})
+	stats[3].count = 1;
 	customers = [];
 	tables.map(d => d.state = IDLE);
 	STAGING_SPOT.fill(0);
@@ -495,6 +497,7 @@ function updateDynamicAgents(){
 	stats[1].cumulativeValue += 122 - tables.reduce((a,b) => a + b.state, 0); //Update Idle tables
 	stats[1].count+= 1; //tick time for idle tables
 	stats[2].count+= 1/(60*60); 
+	stats[3].cumulativeValue = currentTime
 	updateSurface();
 }
 	
