@@ -365,7 +365,7 @@ function updateCustomer(customersIdx){
 			}
 		break;
 		case SHOPPING:
-			if (customer.isdropout == 0) {
+			if (customer.checkdropout == 0) {
 				if (genDropout()){
 					//update state
 					customer.checkdropout = 1
