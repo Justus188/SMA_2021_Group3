@@ -139,6 +139,7 @@ function genDropout() {return Math.random() > 107/159}
 	// All elements of the DOM will be available here
 	window.addEventListener("resize", redrawWindow); //Redraw whenever the window is resized
 	simTimer = window.setInterval(simStep, animationDelay); // call the function simStep every animationDelay milliseconds
+	logTimer = window.setInterval(logStep, animationDelay*10000);
 	redrawWindow();
 })();
 
