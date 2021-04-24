@@ -99,7 +99,7 @@ const probArrival = 0.55// The actual statistics don't stablise in a reasonable 
 // Actual value: 0.03371734// for stepping per simulated second: 0.03371734; // mean interarrival measured to be 29.15
 // We assume arrivals to follow Poisson Process, which is memoryless
 //pexp(1, 29.15) = prob Arrival per s
-function serviceTime() {return 100 + 300*Math.random()}// Same as above; 600+(2704-600)*Math.random(); // Using mean serviceTime
+function serviceTime() {return 300 + 400*Math.random()}// Same as above; 600+(2704-600)*Math.random(); // Using mean serviceTime
 function walkingTime() {return 10 + 90*Math.random()}// Same as above; 300*Math.random()
 
 
