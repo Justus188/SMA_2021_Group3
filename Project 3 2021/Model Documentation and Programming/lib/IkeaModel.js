@@ -80,7 +80,7 @@ function table_pax_maker (i){
 	else if (i < 3+15+75+19) {return 8} else {return 0}
 };
 var tables = Array.apply(null, {length: numTables.reduce((a,b) => a + b['numTables'],0)}).map(
-	function(d,i){return {"row": 6+Math.floor(i/10), "col": STARTCOL+ (i%10)*2, "state": IDLE, "pax": table_pax_maker(i)}})
+	function(d,i){return {"row": 6+Math.floor(i/10), "col": STARTCOL+ (i%10)*2, "state": IDLE, "occupied": 0, "pax": table_pax_maker(i)}})
 
 var currentTime = 0;
 var stats = [
@@ -325,7 +325,7 @@ function seatCustomer(empty_table, customer, stats){
 	//stats
 	customer.timeEnter = currentTime;
 	customer.timeLeave = currentTime + serviceTime();
-	stats[0].cumulativeValue = customer.timeEnter - customer.timeQR;
+	stats[0].cumulativeValue += customer.timeEnter - customer.timeQR;
 	stats[0].count++;
 	return [empty_table, customer, stats]
 }
@@ -440,10 +440,15 @@ function updateCustomer(customersIdx){
 			}
 		break;
 		case INRESTAURANT:
+			var table = tables.find(d => (d.row == customer.location.row && d.col == customer.location.col))
+			if(hasArrived){
+				table.occupied = 1;
+			}
 			if(currentTime > customer.timeLeave && hasArrived){
 				//update state
 				customer.state = LEAVING;
-				tables.find(d => (d.row == customer.location.row && d.col == customer.location.col)).state = IDLE;
+				table.state = IDLE;
+				table.occupied = 0;
 				//update target
 				customer.target = ExitLocation;
 			}
@@ -495,7 +500,7 @@ function updateDynamicAgents(){
 	for (var customersIdx in customers){
 		updateCustomer(customersIdx);
 	}
-	stats[1].cumulativeValue += 122 - tables.reduce((a,b) => a + b.state, 0); //Update Idle tables
+	stats[1].cumulativeValue += 112 - tables.reduce((a,b) => a + b.state, 0); //Update Idle tables
 	stats[1].count+= 1; //tick time for idle tables
 	stats[2].count+= 1/(60*60); 
 	stats[3].cumulativeValue = currentTime
